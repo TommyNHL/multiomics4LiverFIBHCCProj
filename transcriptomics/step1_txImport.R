@@ -36,28 +36,6 @@ Tx <- dplyr::select(Tx, "target_id", "gene_name")
 write.csv(Tx, "../../tx.csv")
 
 # ==============================================================================
-# OPTIONAL: get annotations using BiomaRt----
-library(biomaRt) # an alternative for annotation
-
-listMarts() #default host is ensembl.org, and most current release of mammalian genomes
-#listMarts(host="parasite.wormbase.org") #access to parasite worm genomes
-#listMarts(host="protists.ensembl.org") #access to protozoan genomes
-
-#choose the 'mart' you want to work with
-myMart <- useMart(biomart="ENSEMBL_MART_ENSEMBL")
-#take a look at all available datasets within the selected mart
-available.datasets <- listDatasets(myMart)
-#now grab the ensembl annotations for dog
-dog.anno <- useMart(biomart="ENSEMBL_MART_ENSEMBL", dataset = "clfamiliaris_gene_ensembl")
-dog.attributes <- listAttributes(dog.anno)
-Tx.dog <- getBM(attributes=c('ensembl_transcript_id_version',
-                         'external_gene_name'),
-            mart = dog.anno)
-Tx.dog <- as_tibble(Tx.dog)
-#we need to rename the two columns we just retreived from biomart
-Tx.dog <- dplyr::rename(Tx.dog, target_id = ensembl_transcript_id_version, 
-                    gene_name = external_gene_name)
-# ==============================================================================
 
 # import Kallisto transcript counts into R using Tximport ----
 Txi_gene <- tximport(path, 

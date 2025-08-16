@@ -60,17 +60,6 @@ myTopHits.df <- myTopHits %>%
 temp <- left_join(log2.cpm.filtered.norm.df, myTopHits.df)
 write.csv(temp, "../myDGEList1011log2_filtered_normalized_stat.csv")
 
-#gt(myTopHits.df)
-# TopTable (from Limma) outputs a few different stats:
-# logFC, AveExpr, and P.Value should be self-explanatory
-# adj.P.Val is your adjusted P value, also known as an FDR 
-#     (if BH method was used for multiple testing correction)
-# B statistic is the log-odds that that gene is differentially expressed. 
-#     If B = 1.5, then log odds is e^1.5, where e is euler's constant (approx. 2.718).  
-#     So, the odds of differential expression os about 4.8 to 1
-# t statistic is ratio of the logFC to the standard error 
-#     (where the error has been moderated across all genes...because of Bayesian approach)
-
 # ==============================================================================
 
 # Volcano Plots ----
@@ -138,68 +127,3 @@ datatable(diffGenes.df,
                          pageLength = 10, 
                          lengthMenu = c("10", "25", "50", "100"))) %>% 
     formatRound(columns=c(2:11), digits=2)
-
-# ==============================================================================
-
-# OPTIONAL: differential transcript usage (DTU) analysis ----
-library(IsoformSwitchAnalyzeR)
-
-# The IsoformSwitchAnalyzeR package looks for certain column headers in our study design
-# So, the first step is to make sure our study design contains the following:
-# unique sample IDs must be contained in column called 'sampleID'
-# covariate(s) of interest must be in column labeled 'condition'
-# remove extraneous columns
-targets.mod <- targets %>%
-  dplyr::rename(sampleID = sample, condition = group) %>%
-  dplyr::select(sampleID, condition)
-
-# import transcript Kallisto quant data
-# using the same path variable we set way back in the step 1 script
-Txi_trans <- importIsoformExpression(sampleVector = path)
-
-# fix column headers of abundance and counts data to match sampleID in target.mod
-colnames(Txi_trans$abundance) <- c("isoform_id", sampleLabels)
-colnames(Txi_trans$counts) <- c("isoform_id", sampleLabels)
-
-# import data
-mySwitchList <- importRdata(
-  isoformCountMatrix   = Txi_trans$counts,
-  isoformRepExpression = Txi_trans$abundance,
-  designMatrix         = targets.mod,
-  removeNonConvensionalChr = TRUE,
-  addAnnotatedORFs=TRUE,
-  ignoreAfterPeriod=TRUE,
-  # the files below must be from the same ensembl release (in this case release 108), and must match the reference release version that we originally mapped our reads to at the beginning of the course
-  # you can find version 108 of the gtf file below here: https://ftp.ensembl.org/pub/release-108/gtf/homo_sapiens/
-  isoformExonAnnoation = "Homo_sapiens.GRCh38.111.chr_patch_hapl_scaff.gtf.gz",
-  isoformNtFasta       = "Homo_sapiens.GRCh38.cdna.all.fa",
-  showProgress = TRUE)
-
-
-# We'll do the isoform analysis in one step, but there's a lot to unpack here, so you should really read the package documentation at:
-# https://bioconductor.org/packages/release/bioc/vignettes/IsoformSwitchAnalyzeR/inst/doc/IsoformSwitchAnalyzeR.html
-# Note that without additional manual work here (beyond the scope of this class), we'll only capture isoform annotations for 1) intron retention; 2) ORF sequence similarity; and 3) nonsense mediate decay (NMD)
-
-#NOTE: THIS NEXT BIT COULD TAKE A WHILE!
-mySwitchList <- isoformSwitchAnalysisCombined(
-  switchAnalyzeRlist   = mySwitchList,
-  pathToOutput = 'isoform_output') # directory must already exist
-
-# now look at the directory that you just created above
-# in case you missed the summary output from the function above
-extractSwitchSummary(mySwitchList)
-
-# extract the top n isoform switching events
-extractTopSwitches(
-  mySwitchList,
-  filterForConsequences = TRUE, # these 'consequences' related to the annotations I reference above.
-  n = 50,
-  sortByQvals = FALSE) #change to TRUE if you want this list sorted by FDR-adusted Pval (a.k.a., q value)
-
-# visualize by making a 'switch plot'
-switchPlot(
-  mySwitchList,
-  gene='FCGR3B',
-  condition1 = 'disease',
-  condition2 = 'healthy',
-  localTheme = theme_bw())

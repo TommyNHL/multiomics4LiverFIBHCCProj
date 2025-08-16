@@ -139,25 +139,3 @@ moduleSymbols <- tibble(geneID = rev(hrsub$labels[hrsub$order]))
 moduleData <- diffGenes[moduleSymbols$geneID,]
 moduleData.df <- as_tibble(moduleData, rownames = "geneSymbol")
 write_csv(moduleData.df, "../module_upRegulated1011.csv")
-
-# ==============================================================================
-
-# OPTIONAL: make heatmap from an a priori list of genes ----
-#read in a text file containing the genes (with expression data) you want to include in the heatmap
-mySelectedGenes <- read_tsv("path/to/file/with/selected/genes/with/data")
-
-#rather than reading a file in, this tibble could also come from dplyr operations in step 3 script
-#convert to a matrix so you can carry out clustering
-mySelectedGenes.matrix <- as.matrix(mySelectedGenes)
-
-#you may (or may not) want to cluster your selected genes
-hr <- hclust(as.dist(1-cor(t(mySelectedGenes.matrix), method="pearson")), method="complete") #cluster rows by pearson correlation
-hc <- hclust(as.dist(1-cor(mySelectedGenes.matrix, method="spearman")), method="average") #cluster columns by spearman correlation
-
-#make heatmap
-heatmap.2(mySelectedGenes.matrix, 
-          Rowv=NA, Colv=NA, 
-          col=myheatcol, 
-          scale="row", density.info="none", 
-          trace="none", labCol=NA, 
-          cexRow=1.5, cexCol=1, margins=c(8,20), key = F)
